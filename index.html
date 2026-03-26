@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Absensi IoT</title>
+  <style>
+    body { font-family: Arial, sans-serif; background-color: #f4f7f6; padding: 20px; text-align: center; }
+    .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+    .card { background: #e3f2fd; padding: 15px; margin: 10px 0; border-radius: 8px; border-left: 5px solid #2196f3; text-align: left; }
+    h1 { color: #333; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>Data Absensi Real-Time</h1>
+    <p>Data diambil langsung dari Wokwi & Firebase</p>
+    
+    <div id="log-absen">
+      <p>Memuat data...</p>
+    </div>
+  </div>
+
+  <script>
+    // GANTI URL DI BAWAH INI DENGAN URL FIREBASE KAMU
+    // Ingat, harus diakhiri dengan /absensi.json
+    const firebaseURL = "https://absensi-rfid-default-rtdb.asia-southeast1.firebasedatabase.app/absensi.json";
+
+    async function ambilDataFirebase() {
+      try {
+        const response = await fetch(firebaseURL);
+        const data = await response.json();
+        
+        const container = document.getElementById("log-absen");
+        let htmlContent = "";
+
+        if (data) {
+          // Firebase menyimpan data dalam bentuk object unik, kita ubah ke array
+          const dataArray = Object.keys(data).map(key => ({
+            id: key,
+            ...data[key]
+          }));
+
+          // Balik urutan agar data absen terbaru muncul di paling atas
+          dataArray.reverse().forEach(item => {
+            htmlContent += `
+              <div class="card">
+                <strong>UID Kartu:</strong> ${item.uid} <br>
+                <small>Status: Berhasil Absen ✓</small>
+              </div>
+            `;
+          });
+        } else {
+          htmlContent = "<p>Belum ada data absensi yang masuk.</p>";
+        }
+
+        container.innerHTML = htmlContent;
+      } catch (error) {
+        console.error("Gagal mengambil data:", error);
+      }
+    }
+
+    // Melakukan pengecekan data baru setiap 2 detik (2000 milidetik)
+    setInterval(ambilDataFirebase, 2000);
+    ambilDataFirebase(); // Panggil fungsi saat web pertama kali dibuka
+  </script>
+
+</body>
+</html>
