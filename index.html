@@ -7,15 +7,21 @@
   <style>
     body { font-family: Arial, sans-serif; background-color: #f4f7f6; padding: 20px; text-align: center; }
     .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+    
+    /* Gaya untuk kartu yang terdaftar */
     .card { background: #e3f2fd; padding: 15px; margin: 10px 0; border-radius: 8px; border-left: 5px solid #2196f3; text-align: left; }
+    
+    /* Gaya untuk kartu yang TIDAK terdaftar */
+    .card.unknown { background: #ffebee; border-left-color: #f44336; }
+    
     h1 { color: #333; }
   </style>
 </head>
 <body>
 
   <div class="container">
-    <h1>Data Absensi Real-Time</h1>
-    <p>Data diambil langsung dari Wokwi & Firebase</p>
+    <h1>Dashboard Absensi Karyawan</h1>
+    <p>Live Update dari Wokwi & Firebase</p>
     
     <div id="log-absen">
       <p>Memuat data...</p>
@@ -23,9 +29,16 @@
   </div>
 
   <script>
-    // GANTI URL DI BAWAH INI DENGAN URL FIREBASE KAMU
-    // Ingat, harus diakhiri dengan /absensi.json
+    // 1. PASTIKAN URL FIREBASE KAMU BENAR (berakhiran /absensi.json)
     const firebaseURL = "https://absensi-rfid-default-rtdb.asia-southeast1.firebasedatabase.app/absensi.json";
+
+    // 2. DATABASE LOKAL: Mapping UID ke Nama User
+    // Kamu bisa menambahkan UID kartu baru di sini nanti
+    const dataPegawai = {
+      "01020304": "Ahmad",       // UID dari kodemu sebelumnya
+      "A1B2C3D4": "Siti Aminah", // Contoh UID lain
+      "F9E8D7C6": "Budi Santoso" // Contoh UID lain
+    };
 
     async function ambilDataFirebase() {
       try {
@@ -36,23 +49,40 @@
         let htmlContent = "";
 
         if (data) {
-          // Firebase menyimpan data dalam bentuk object unik, kita ubah ke array
+          // Ubah data object dari Firebase menjadi array
           const dataArray = Object.keys(data).map(key => ({
             id: key,
             ...data[key]
           }));
 
-          // Balik urutan agar data absen terbaru muncul di paling atas
+          // Balik urutan agar yang terbaru ada di atas
           dataArray.reverse().forEach(item => {
-            htmlContent += `
-              <div class="card">
-                <strong>UID Kartu:</strong> ${item.uid} <br>
-                <small>Status: Berhasil Absen ✓</small>
-              </div>
-            `;
+            
+            // Mengecek apakah UID dari Firebase ada di 'dataPegawai'
+            const namaUser = dataPegawai[item.uid];
+            
+            if (namaUser) {
+              // Tampilan jika UID TERDAFTAR
+              htmlContent += `
+                <div class="card">
+                  <strong style="font-size: 1.2em;">👤 ${namaUser}</strong> <br>
+                  <small>UID Kartu: ${item.uid}</small> <br>
+                  <small style="color: #2e7d32; font-weight: bold;">✓ Berhasil Absen</small>
+                </div>
+              `;
+            } else {
+              // Tampilan jika UID TIDAK TERDAFTAR
+              htmlContent += `
+                <div class="card unknown">
+                  <strong style="font-size: 1.2em; color: #c62828;">⚠️ User Tidak Dikenal</strong> <br>
+                  <small>UID Kartu: ${item.uid}</small> <br>
+                  <small style="color: #c62828; font-weight: bold;">✕ Kartu Belum Terdaftar di Sistem</small>
+                </div>
+              `;
+            }
           });
         } else {
-          htmlContent = "<p>Belum ada data absensi yang masuk.</p>";
+          htmlContent = "<p>Belum ada data absensi yang masuk hari ini.</p>";
         }
 
         container.innerHTML = htmlContent;
@@ -61,9 +91,9 @@
       }
     }
 
-    // Melakukan pengecekan data baru setiap 2 detik (2000 milidetik)
+    // Refresh data otomatis setiap 2 detik
     setInterval(ambilDataFirebase, 2000);
-    ambilDataFirebase(); // Panggil fungsi saat web pertama kali dibuka
+    ambilDataFirebase(); 
   </script>
 
 </body>
